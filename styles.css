@@ -435,3 +435,61 @@ body {
 .mt8 { margin-top: 8px; }
 .row { display: flex; gap: 10px; }
 .row > * { flex: 1; }
+
+/* ============ 账本 ============ */
+/* 6个tab时缩小字号 */
+.tabbar .tab { padding: 7px 0 8px; }
+.tabbar .tab-ico { font-size: 19px; }
+.tabbar .tab-label { font-size: 10px; }
+
+.month-nav { display: flex; align-items: center; gap: 6px; }
+.month-nav-btn { border: none; background: var(--soft); color: var(--text); border-radius: 8px; width: 28px; height: 28px; font-size: 18px; cursor: pointer; display: grid; place-items: center; line-height: 1; }
+.month-nav-label { font-size: 14px; font-weight: 700; min-width: 88px; text-align: center; }
+
+.ledger-summary-bar { display: flex; gap: 8px; margin-bottom: 14px; }
+.ledger-summary-bar .lsb-item { flex: 1; background: var(--card); border-radius: 14px; padding: 11px 10px; text-align: center; box-shadow: var(--shadow); }
+.ledger-summary-bar .lsb-label { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+.ledger-summary-bar .lsb-val { font-size: 14px; font-weight: 800; }
+.ledger-summary-bar .lsb-val.income { color: var(--done); }
+.ledger-summary-bar .lsb-val.expense { color: var(--bad); }
+.ledger-summary-bar .lsb-val.balance { color: var(--brand-deep); }
+
+.ledger-day-group { margin-bottom: 10px; }
+.ledger-day-label { font-size: 12px; color: var(--muted); font-weight: 600; margin: 0 2px 6px; }
+.ledger-entries { background: var(--card); border-radius: 16px; box-shadow: var(--shadow); overflow: hidden; }
+.ledger-entry { display: flex; align-items: center; gap: 12px; padding: 13px 14px; border-bottom: 1px solid var(--line); cursor: pointer; }
+.ledger-entry:last-child { border-bottom: none; }
+.ledger-entry:active { background: var(--soft); }
+.le-icon { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; font-size: 18px; flex: 0 0 auto; }
+.le-icon.income { background: var(--done-soft); }
+.le-icon.expense { background: var(--bad-soft); }
+.le-icon.transfer { background: var(--soft); }
+.le-main { flex: 1; min-width: 0; }
+.le-cat { font-size: 14px; font-weight: 600; }
+.le-sub { font-size: 12px; color: var(--muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.le-amount { font-size: 15px; font-weight: 700; flex: 0 0 auto; }
+.le-amount.income { color: var(--done); }
+.le-amount.expense { color: var(--bad); }
+.le-amount.transfer { color: var(--muted); }
+
+/* 账本表单 */
+.ledger-type-toggle { display: flex; background: var(--soft); border-radius: 12px; padding: 4px; gap: 4px; margin-bottom: 14px; }
+.ledger-type-toggle button { flex: 1; border: none; background: none; padding: 9px; border-radius: 9px; font-size: 14px; font-weight: 700; cursor: pointer; color: var(--muted); }
+.ledger-type-toggle button.on { background: var(--pill); box-shadow: var(--shadow); }
+.ledger-type-toggle button[data-ltype="income"].on { color: var(--done); }
+.ledger-type-toggle button[data-ltype="expense"].on { color: var(--bad); }
+.ledger-type-toggle button[data-ltype="transfer"].on { color: var(--brand-deep); }
+
+.lform-field { margin-bottom: 12px; }
+.lform-field label { font-size: 12.5px; color: var(--muted); font-weight: 600; display: block; margin-bottom: 5px; }
+.lform-field input, .lform-field textarea { width: 100%; border: 1.5px solid var(--line); border-radius: 11px; padding: 11px 13px; font-size: 15px; background: var(--field); color: var(--text); font-family: inherit; outline: none; }
+.lform-field input:focus, .lform-field textarea:focus { border-color: var(--brand); }
+.lform-field textarea { resize: none; height: 60px; }
+
+.cat-chips-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.cat-chip { border: 1.5px solid var(--line); background: var(--pill); color: var(--text); border-radius: 999px; padding: 6px 14px; font-size: 13px; cursor: pointer; white-space: nowrap; }
+.cat-chip.on { background: var(--mint); border-color: var(--brand); color: var(--brand-deep); font-weight: 700; }
+.cat-chip.add-chip { border-style: dashed; color: var(--muted); }
+
+.lform-btns { display: flex; gap: 10px; margin-top: 4px; }
+.lform-btns .btn { flex: 1; }

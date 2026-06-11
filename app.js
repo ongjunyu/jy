@@ -57,6 +57,8 @@
   let pushTimer = null;        // 云同步防抖计时器
   let chatHistory = [];        // 与小帮手的对话历史（发给真 AI 用）
   let chatBusy = false;        // 真 AI 请求进行中，串行化避免消息错位
+  let currentTab = 'home';     // 当前激活的 Tab
+  let ledgerViewMonth = { year: new Date().getFullYear(), month: new Date().getMonth() }; // 账本当前查看月份
   const HAS_API = location.protocol === 'http:' || location.protocol === 'https:'; // file:// 打开时无后端
 
   function defaultState() {
@@ -65,6 +67,14 @@
       goals: [],
       records: [],
       challenges: [],
+      ledger: {
+        entries: [],
+        categories: {
+          expense: ['餐饮','交通','购物','娱乐','医疗保健','教育','人情往来','孝敬父母','其他'],
+          income: ['工资','奖金','红包','兼职','其他'],
+        },
+        accounts: ['现金','银行账户','信用卡'],
+      },
       settings: { currency: 'RM', activeGoalId: null, theme: 'auto', reminder: false },
       meta: { onboarded: false, lastReminder: '', updatedAt: 0 },
     };
@@ -150,6 +160,37 @@
 
     const wantActive = (raw.settings && safeId(raw.settings.activeGoalId)) || null;
     out.settings.activeGoalId = (wantActive && goalIds.has(wantActive)) ? wantActive : (out.goals[0] ? out.goals[0].id : null);
+
+    if (raw.ledger && typeof raw.ledger === 'object') {
+      const rl = raw.ledger;
+      if (Array.isArray(rl.accounts)) {
+        out.ledger.accounts = rl.accounts.filter(a => typeof a === 'string' && a.length).map(a => a.slice(0, 20));
+        if (!out.ledger.accounts.length) out.ledger.accounts = ['现金','银行账户','信用卡'];
+      }
+      if (rl.categories && typeof rl.categories === 'object') {
+        ['expense','income'].forEach(k => {
+          if (Array.isArray(rl.categories[k])) {
+            const cats = rl.categories[k].filter(c => typeof c === 'string' && c.length).map(c => c.slice(0, 20));
+            if (cats.length) out.ledger.categories[k] = cats;
+          }
+        });
+      }
+      if (Array.isArray(rl.entries)) rl.entries.forEach(e => {
+        if (!e || typeof e !== 'object') return;
+        const id = safeId(e.id); if (!id) return;
+        const amount = Number(e.amount); if (!isFinite(amount) || amount <= 0) return;
+        if (!['income','expense','transfer'].includes(e.type)) return;
+        out.ledger.entries.push({
+          id, type: e.type, amount,
+          date: isDateStr(e.date) ? e.date : todayStr(),
+          category: cleanStr(e.category, 20),
+          account: cleanStr(e.account, 20),
+          toAccount: cleanStr(e.toAccount, 20),
+          note: cleanStr(e.note, 60),
+          createdAt: Number(e.createdAt) || Date.now(),
+        });
+      });
+    }
     return out;
   }
 
@@ -738,6 +779,7 @@
     renderGoals();
     renderRecords();
     renderChallenges();
+    renderLedger();
   }
 
   /* ----- 首页 ----- */
@@ -1014,13 +1056,14 @@
      交互：导航 / 弹窗 / 表单
      =========================================================== */
   function switchTab(name) {
+    currentTab = name;
     $$('.tab').forEach(t => {
       const on = t.dataset.tab === name;
       t.classList.toggle('is-active', on);
       t.setAttribute('aria-current', on ? 'page' : 'false');
     });
     $$('.screen').forEach(s => s.classList.toggle('is-active', s.dataset.screen === name));
-    const titles = { home: '存钱小帮手', goals: '我的目标', records: '存钱记录', challenges: '存钱挑战', assistant: 'AI 小帮手' };
+    const titles = { home: '存钱小帮手', goals: '我的目标', records: '存钱记录', challenges: '存钱挑战', ledger: '账本', assistant: 'AI 小帮手' };
     $('#topbarTitle').textContent = titles[name] || '存钱小帮手';
     // 聊天屏底部有固定输入栏，隐藏 FAB 以免遮挡发送按钮
     $('#fab').hidden = (name === 'assistant');
@@ -1604,6 +1647,266 @@
   }
 
   /* ===========================================================
+     账本
+     =========================================================== */
+  const CAT_EMOJI = {
+    '餐饮':'🍜','交通':'🚗','购物':'🛍️','娱乐':'🎮','医疗保健':'🏥',
+    '教育':'📚','人情往来':'🎁','孝敬父母':'👨‍👩‍👧','其他':'💭',
+    '工资':'💼','奖金':'💰','红包':'🧧','兼职':'🔧','利息':'🏦',
+  };
+
+  function ledgerMonthEntries() {
+    const { year, month } = ledgerViewMonth;
+    return (state.ledger.entries || []).filter(e => {
+      const d = parseDate(e.date);
+      return d.getFullYear() === year && d.getMonth() === month;
+    });
+  }
+
+  function renderLedger() {
+    const { year, month } = ledgerViewMonth;
+    const now = new Date();
+    const label = `${year}年${month + 1}月`;
+    const isThisMonth = year === now.getFullYear() && month === now.getMonth();
+    const el = $('#ledgerMonthLabel'); if (el) el.textContent = label;
+    // disable next if already at current month
+    const nb = $('#ledgerNext'); if (nb) nb.disabled = isThisMonth;
+
+    const entries = ledgerMonthEntries();
+    const totalIncome = entries.filter(e => e.type === 'income').reduce((s, e) => s + e.amount, 0);
+    const totalExpense = entries.filter(e => e.type === 'expense').reduce((s, e) => s + e.amount, 0);
+    const balance = totalIncome - totalExpense;
+    const cur = state.settings.currency || '';
+    const gap = /[A-Za-z]$/.test(cur) ? ' ' : '';
+    const fmt = n => (n < 0 ? '-' : '') + esc(cur) + gap + Math.abs(n).toLocaleString('en-MY', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const sumEl = $('#ledgerSummary');
+    if (sumEl) sumEl.innerHTML = `
+      <div class="lsb-item"><div class="lsb-label">收入</div><div class="lsb-val income">${fmt(totalIncome)}</div></div>
+      <div class="lsb-item"><div class="lsb-label">支出</div><div class="lsb-val expense">${fmt(totalExpense)}</div></div>
+      <div class="lsb-item"><div class="lsb-label">结余</div><div class="lsb-val balance">${fmt(balance)}</div></div>
+    `;
+
+    const listEl = $('#ledgerList');
+    if (!listEl) return;
+    if (!entries.length) {
+      listEl.innerHTML = `<div class="card empty"><div class="ico">📒</div><p>这个月还没有记录<br>点 ＋ 添加第一笔</p></div>`;
+      return;
+    }
+
+    // group by date descending
+    const byDate = {};
+    entries.forEach(e => { (byDate[e.date] = byDate[e.date] || []).push(e); });
+    const dates = Object.keys(byDate).sort((a, b) => b.localeCompare(a));
+    const WEEK = ['日','一','二','三','四','五','六'];
+    listEl.innerHTML = dates.map(date => {
+      const d = parseDate(date);
+      const dayLabel = `${d.getMonth() + 1}月${d.getDate()}日 周${WEEK[d.getDay()]}`;
+      const rows = byDate[date].sort((a, b) => b.createdAt - a.createdAt).map(e => {
+        const emoji = CAT_EMOJI[e.category] || (e.type === 'income' ? '💰' : e.type === 'transfer' ? '↔️' : '💸');
+        const subParts = [];
+        if (e.account) subParts.push(e.account);
+        if (e.type === 'transfer' && e.toAccount) subParts.push('→ ' + e.toAccount);
+        if (e.note) subParts.push(e.note);
+        const sub = subParts.join(' · ');
+        const sign = e.type === 'income' ? '+' : e.type === 'transfer' ? '' : '-';
+        return `<div class="ledger-entry" data-action="edit-ledger-entry:${esc(e.id)}">
+          <div class="le-icon ${e.type}"><span>${emoji}</span></div>
+          <div class="le-main">
+            <div class="le-cat">${esc(e.category || (e.type === 'transfer' ? '转账' : e.type === 'income' ? '收入' : '支出'))}</div>
+            ${sub ? `<div class="le-sub">${esc(sub)}</div>` : ''}
+          </div>
+          <div class="le-amount ${e.type}">${sign}${fmt(e.amount)}</div>
+        </div>`;
+      }).join('');
+      return `<div class="ledger-day-group"><div class="ledger-day-label">${dayLabel}</div><div class="ledger-entries">${rows}</div></div>`;
+    }).join('');
+  }
+
+  function openLedgerEntryForm(editEntry) {
+    const editing = !!editEntry;
+    let type = editing ? editEntry.type : 'expense';
+    let selCat = editing ? editEntry.category : '';
+    let selAcc = editing ? editEntry.account : (state.ledger.accounts[0] || '');
+    let selToAcc = editing ? (editEntry.toAccount || '') : '';
+
+    function buildFormHTML() {
+      const cats = type === 'income'
+        ? (state.ledger.categories.income || [])
+        : (type === 'expense' ? (state.ledger.categories.expense || []) : []);
+      const accs = state.ledger.accounts || [];
+      const catsHTML = type !== 'transfer' ? `
+        <div class="lform-field">
+          <label>分类</label>
+          <div class="cat-chips-row" id="catChips">
+            ${cats.map(c => `<button type="button" class="cat-chip ${c === selCat ? 'on' : ''}" data-cat="${esc(c)}">${esc(CAT_EMOJI[c] || '')} ${esc(c)}</button>`).join('')}
+            <button type="button" class="cat-chip add-chip" data-action="add-cat">＋ 添加</button>
+          </div>
+        </div>` : '';
+      const accLabel = type === 'transfer' ? '转出账户' : '账户';
+      const toAccHTML = type === 'transfer' ? `
+        <div class="lform-field">
+          <label>转入账户</label>
+          <div class="cat-chips-row" id="toAccChips">
+            ${accs.map(a => `<button type="button" class="cat-chip ${a === selToAcc ? 'on' : ''}" data-toacc="${esc(a)}">${esc(a)}</button>`).join('')}
+            <button type="button" class="cat-chip add-chip" data-action="add-acc">＋ 添加</button>
+          </div>
+        </div>` : '';
+      return `
+        <div class="ledger-type-toggle" id="ltypeToggle">
+          <button data-ltype="expense" class="${type === 'expense' ? 'on' : ''}">💸 支出</button>
+          <button data-ltype="income" class="${type === 'income' ? 'on' : ''}">💰 收入</button>
+          <button data-ltype="transfer" class="${type === 'transfer' ? 'on' : ''}">↔️ 转账</button>
+        </div>
+        <div class="lform-field">
+          <label>金额</label>
+          <input id="leAmount" type="number" inputmode="decimal" min="0.01" placeholder="0.00" value="${editing ? editEntry.amount : ''}"/>
+        </div>
+        <div class="lform-field">
+          <label>日期</label>
+          <input id="leDate" type="date" value="${editing ? editEntry.date : todayStr()}"/>
+        </div>
+        ${catsHTML}
+        <div class="lform-field">
+          <label>${accLabel}</label>
+          <div class="cat-chips-row" id="accChips">
+            ${accs.map(a => `<button type="button" class="cat-chip ${a === selAcc ? 'on' : ''}" data-acc="${esc(a)}">${esc(a)}</button>`).join('')}
+            <button type="button" class="cat-chip add-chip" data-action="add-acc">＋ 添加</button>
+          </div>
+        </div>
+        ${toAccHTML}
+        <div class="lform-field">
+          <label>备注（可选）</label>
+          <textarea id="leNote" placeholder="备注…">${editing ? esc(editEntry.note || '') : ''}</textarea>
+        </div>
+        <div class="lform-btns">
+          <button class="btn btn-primary" id="saveLedgerEntry">${editing ? '保存修改' : '保存'}</button>
+          ${!editing ? `<button class="btn btn-ghost" id="saveLedgerContinue">保存并继续</button>` : ''}
+        </div>
+        ${editing ? `<button class="btn btn-danger btn-block mt8" id="delLedgerEntry">删除这条</button>` : ''}
+      `;
+    }
+
+    function rebuildSheet() {
+      const body = $('#sheetBody');
+      if (!body) return;
+      body.innerHTML = buildFormHTML();
+      bindFormEvents(body);
+    }
+
+    function bindFormEvents(root) {
+      // type toggle
+      const ttoggle = $('#ltypeToggle', root);
+      if (ttoggle) ttoggle.addEventListener('click', e => {
+        const b = e.target.closest('[data-ltype]'); if (!b) return;
+        type = b.dataset.ltype;
+        selCat = '';
+        $$('#ltypeToggle button', root).forEach(x => x.classList.toggle('on', x === b));
+        rebuildSheet();
+      });
+
+      // category chips
+      const catChips = $('#catChips', root);
+      if (catChips) catChips.addEventListener('click', e => {
+        const b = e.target.closest('[data-cat]');
+        if (b) { selCat = b.dataset.cat; $$('#catChips .cat-chip', root).forEach(x => x.classList.toggle('on', x.dataset.cat === selCat)); return; }
+        if (e.target.closest('[data-action="add-cat"]')) {
+          const name = prompt('新分类名称：'); if (!name || !name.trim()) return;
+          const n = name.trim().slice(0, 20);
+          const list = type === 'income' ? state.ledger.categories.income : state.ledger.categories.expense;
+          if (!list.includes(n)) { list.push(n); save(); }
+          selCat = n; rebuildSheet();
+        }
+      });
+
+      // account chips
+      const accChips = $('#accChips', root);
+      if (accChips) accChips.addEventListener('click', e => {
+        const b = e.target.closest('[data-acc]');
+        if (b) { selAcc = b.dataset.acc; $$('#accChips .cat-chip', root).forEach(x => x.classList.toggle('on', x.dataset.acc === selAcc)); return; }
+        if (e.target.closest('[data-action="add-acc"]')) {
+          const name = prompt('新账户名称：'); if (!name || !name.trim()) return;
+          const n = name.trim().slice(0, 20);
+          if (!state.ledger.accounts.includes(n)) { state.ledger.accounts.push(n); save(); }
+          selAcc = n; rebuildSheet();
+        }
+      });
+
+      // to-account chips (transfer)
+      const toAccChips = $('#toAccChips', root);
+      if (toAccChips) toAccChips.addEventListener('click', e => {
+        const b = e.target.closest('[data-toacc]');
+        if (b) { selToAcc = b.dataset.toacc; $$('#toAccChips .cat-chip', root).forEach(x => x.classList.toggle('on', x.dataset.toacc === selToAcc)); return; }
+        if (e.target.closest('[data-action="add-acc"]')) {
+          const name = prompt('新账户名称：'); if (!name || !name.trim()) return;
+          const n = name.trim().slice(0, 20);
+          if (!state.ledger.accounts.includes(n)) { state.ledger.accounts.push(n); save(); }
+          selToAcc = n; rebuildSheet();
+        }
+      });
+
+      function doSave() {
+        const amount = parseFloat($('#leAmount', root).value);
+        if (!amount || amount <= 0) return toast('请输入有效金额');
+        const date = $('#leDate', root).value || todayStr();
+        if (type !== 'transfer' && !selCat) return toast('请选择分类');
+        if (!selAcc) return toast('请选择账户');
+        const note = ($('#leNote', root).value || '').trim().slice(0, 60);
+        const entry = { type, amount, date, category: selCat, account: selAcc, toAccount: selToAcc, note };
+        if (editing) {
+          Object.assign(editEntry, entry);
+        } else {
+          state.ledger.entries.push({ id: uid(), ...entry, createdAt: Date.now() });
+        }
+        save(); renderLedger();
+        return true;
+      }
+
+      const saveBtn = $('#saveLedgerEntry', root);
+      if (saveBtn) saveBtn.addEventListener('click', () => { if (doSave()) closeSheet(); });
+      const contBtn = $('#saveLedgerContinue', root);
+      if (contBtn) contBtn.addEventListener('click', () => {
+        if (!doSave()) return;
+        toast('已保存，继续记录');
+        selCat = ''; rebuildSheet();
+      });
+      const delBtn = $('#delLedgerEntry', root);
+      if (delBtn) delBtn.addEventListener('click', () => {
+        if (!confirm('确定删除这条记录？')) return;
+        state.ledger.entries = state.ledger.entries.filter(e => e.id !== editEntry.id);
+        save(); renderLedger(); closeSheet(); toast('已删除');
+      });
+    }
+
+    openSheet(editing ? '编辑记录' : '记一笔', buildFormHTML(), bindFormEvents);
+  }
+
+  // 全局事件委托：账本条目点击编辑
+  document.addEventListener('click', e => {
+    const el = e.target.closest('[data-action^="edit-ledger-entry:"]');
+    if (!el) return;
+    const id = el.dataset.action.split(':')[1];
+    const entry = (state.ledger.entries || []).find(x => x.id === id);
+    if (entry) openLedgerEntryForm(entry);
+  });
+
+  // 月份导航
+  document.addEventListener('click', e => {
+    if (e.target.id === 'ledgerPrev') {
+      ledgerViewMonth.month--;
+      if (ledgerViewMonth.month < 0) { ledgerViewMonth.month = 11; ledgerViewMonth.year--; }
+      renderLedger();
+    } else if (e.target.id === 'ledgerNext') {
+      const now = new Date();
+      if (ledgerViewMonth.year < now.getFullYear() || (ledgerViewMonth.year === now.getFullYear() && ledgerViewMonth.month < now.getMonth())) {
+        ledgerViewMonth.month++;
+        if (ledgerViewMonth.month > 11) { ledgerViewMonth.month = 0; ledgerViewMonth.year++; }
+        renderLedger();
+      }
+    }
+  });
+
+  /* ===========================================================
      绑定固定控件 & 启动
      =========================================================== */
   function bindStatic() {
@@ -1612,7 +1915,10 @@
       switchTab(b.dataset.tab);
       if (b.dataset.tab === 'assistant') initChat();
     });
-    $('#fab').addEventListener('click', () => openRecordForm(null, 'in'));
+    $('#fab').addEventListener('click', () => {
+      if (currentTab === 'ledger') openLedgerEntryForm();
+      else openRecordForm(null, 'in');
+    });
     $('#topbarAction').addEventListener('click', openSettings);
     $('#addGoalBtn').addEventListener('click', () => openGoalForm());
     $('#addChallengeBtn').addEventListener('click', () => openChallengeForm());

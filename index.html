@@ -98,6 +98,20 @@
         <div id="challengesList" class="challenges-list"></div>
       </section>
 
+      <!-- ========== 账本 ========== -->
+      <section class="screen" data-screen="ledger">
+        <div class="screen-head">
+          <h2>账本</h2>
+          <div class="month-nav">
+            <button class="month-nav-btn" id="ledgerPrev">‹</button>
+            <span class="month-nav-label" id="ledgerMonthLabel"></span>
+            <button class="month-nav-btn" id="ledgerNext">›</button>
+          </div>
+        </div>
+        <div class="ledger-summary-bar" id="ledgerSummary"></div>
+        <div id="ledgerList"></div>
+      </section>
+
       <!-- ========== 小帮手 ========== -->
       <section class="screen" data-screen="assistant">
         <div class="screen-head">
@@ -122,6 +136,7 @@
       <button class="tab" data-tab="goals"><span class="tab-ico">🎯</span><span class="tab-label">目标</span></button>
       <button class="tab" data-tab="records"><span class="tab-ico">📒</span><span class="tab-label">记录</span></button>
       <button class="tab" data-tab="challenges"><span class="tab-ico">🏆</span><span class="tab-label">挑战</span></button>
+      <button class="tab" data-tab="ledger"><span class="tab-ico">📒</span><span class="tab-label">账本</span></button>
       <button class="tab" data-tab="assistant"><span class="tab-ico">🐷</span><span class="tab-label">帮手</span></button>
     </nav>
   </div>
