@@ -1,0 +1,20 @@
+{
+  "name": "AI 存钱小帮手",
+  "short_name": "存钱小帮手",
+  "description": "陪你一起攒下梦想的智能存钱助手：目标管理、记账、AI 建议与存钱挑战。",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#16a085",
+  "theme_color": "#16a085",
+  "lang": "zh-CN",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

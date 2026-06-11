@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#16a085" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="存钱小帮手" />
+  <title>AI 存钱小帮手</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- 手机外壳：在桌面端居中显示成手机；在手机上自动全屏 -->
+  <div id="app" class="phone">
+
+    <!-- 顶部状态栏装饰 -->
+    <header class="topbar" id="topbar">
+      <div class="topbar-title" id="topbarTitle">存钱小帮手</div>
+      <button class="topbar-action" id="topbarAction" aria-label="设置" title="设置">⚙️</button>
+    </header>
+
+    <!-- 主内容区，所有页面都在这里切换 -->
+    <main class="screens" id="screens">
+
+      <!-- ========== 首页 ========== -->
+      <section class="screen is-active" data-screen="home">
+        <div class="hero-card" id="heroCard">
+          <div class="hero-greeting" id="heroGreeting">你好呀 👋</div>
+          <div class="hero-sub" id="heroSub">今天也要为梦想存一笔哦～</div>
+          <div class="hero-mascot">🐷</div>
+        </div>
+
+        <!-- 每日提醒横幅 -->
+        <div id="homeReminder"></div>
+
+        <!-- AI 小帮手每日消息 -->
+        <div class="card assistant-card" id="assistantCard">
+          <div class="assistant-head">
+            <span class="assistant-avatar">🐷</span>
+            <span class="assistant-name">小帮手说</span>
+            <button class="assistant-refresh" id="assistantRefresh" title="换一句" aria-label="换一句建议">🔄</button>
+          </div>
+          <div class="assistant-bubble" id="assistantBubble">正在思考…</div>
+          <div class="assistant-actions" id="assistantActions"></div>
+        </div>
+
+        <!-- 当前目标进度 -->
+        <div id="homeGoalWrap"></div>
+
+        <!-- 快捷统计 -->
+        <div class="stats-grid" id="homeStats"></div>
+
+        <!-- 进行中的挑战预览 -->
+        <div id="homeChallenge"></div>
+      </section>
+
+      <!-- ========== 目标 ========== -->
+      <section class="screen" data-screen="goals">
+        <div class="screen-head">
+          <h2>我的目标</h2>
+          <button class="btn-add" id="addGoalBtn">+ 新目标</button>
+        </div>
+        <div id="goalsList" class="goals-list"></div>
+      </section>
+
+      <!-- ========== 记录 ========== -->
+      <section class="screen" data-screen="records">
+        <div class="screen-head">
+          <h2>存钱记录</h2>
+        </div>
+        <div class="record-summary" id="recordSummary"></div>
+        <div class="card chart-card">
+          <div class="chart-title">最近 30 天累计</div>
+          <div id="chartWrap" class="chart-wrap"></div>
+        </div>
+        <div class="card chart-card">
+          <div class="chart-title">近 6 个月存入</div>
+          <div id="barsWrap" class="chart-wrap"></div>
+        </div>
+        <div class="card">
+          <div class="chart-title" style="margin-bottom:6px">数据洞察</div>
+          <div id="insights" class="insight-list"></div>
+        </div>
+        <div class="record-filter" id="recordFilter"></div>
+        <div id="recordsList" class="records-list"></div>
+      </section>
+
+      <!-- ========== 挑战 ========== -->
+      <section class="screen" data-screen="challenges">
+        <div class="screen-head">
+          <h2>存钱挑战</h2>
+          <button class="btn-add" id="addChallengeBtn">+ 加入挑战</button>
+        </div>
+        <div id="challengesList" class="challenges-list"></div>
+      </section>
+
+      <!-- ========== 小帮手 ========== -->
+      <section class="screen" data-screen="assistant">
+        <div class="screen-head">
+          <h2>AI 小帮手</h2>
+        </div>
+        <div class="chat" id="chat"></div>
+        <div class="quick-questions" id="quickQuestions"></div>
+        <div class="chat-input-bar">
+          <input type="text" id="chatInput" placeholder="问问小帮手…" autocomplete="off" />
+          <button id="chatSend">发送</button>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- 悬浮“存一笔”按钮 -->
+    <button class="fab" id="fab" aria-label="存一笔">＋</button>
+
+    <!-- 底部导航 -->
+    <nav class="tabbar" id="tabbar">
+      <button class="tab is-active" data-tab="home"><span class="tab-ico">🏠</span><span class="tab-label">首页</span></button>
+      <button class="tab" data-tab="goals"><span class="tab-ico">🎯</span><span class="tab-label">目标</span></button>
+      <button class="tab" data-tab="records"><span class="tab-ico">📒</span><span class="tab-label">记录</span></button>
+      <button class="tab" data-tab="challenges"><span class="tab-ico">🏆</span><span class="tab-label">挑战</span></button>
+      <button class="tab" data-tab="assistant"><span class="tab-ico">🐷</span><span class="tab-label">帮手</span></button>
+    </nav>
+  </div>
+
+  <!-- 通用底部弹窗 -->
+  <div class="sheet-mask" id="sheetMask" hidden>
+    <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" tabindex="-1">
+      <div class="sheet-handle"></div>
+      <div class="sheet-head">
+        <div class="sheet-title" id="sheetTitle">标题</div>
+        <button class="sheet-close" id="sheetClose" aria-label="关闭">✕</button>
+      </div>
+      <div class="sheet-body" id="sheetBody"></div>
+    </div>
+  </div>
+
+  <!-- 轻提示 -->
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+  <!-- 撒花动画容器 -->
+  <div class="confetti" id="confetti" aria-hidden="true"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

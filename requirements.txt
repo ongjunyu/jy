@@ -1,0 +1,5 @@
+# 生产环境依赖（本地用 python3 server.py 跑、且不接 Claude/Postgres 时无需安装）
+# - anthropic: 真·Claude API 对话（设置 ANTHROPIC_API_KEY 时使用）
+# - psycopg2-binary: 连接 Postgres 实现数据持久化（设置 DATABASE_URL 时使用）
+anthropic>=0.40.0
+psycopg2-binary>=2.9.9

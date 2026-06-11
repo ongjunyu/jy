@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(awk 'NR>=180 && NR<=320 && /media|@media/' \"/Users/jy/claude ai_project/styles.css\")",
+      "Bash(node -e ' *)",
+      "Bash(which node *)",
+      "Bash(curl -fsSL https://claude.ai/install.sh)",
+      "Bash(bash)",
+      "Bash(gh repo *)",
+      "Bash(curl -s https://api.github.com/repos/anthropics/claude-plugins-official/contents/plugins)",
+      "Bash(curl -s https://api.github.com/repos/anthropics/claude-plugins-official/contents/external_plugins)",
+      "Bash(python3 -c ' *)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:api.github.com)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(grep -oE \"\\\\\\\\\\\\$\\\\\\('#[a-zA-Z]+'\\\\\\)\" app.js)",
+      "Bash(command -v python3)",
+      "Bash(command -v python)",
+      "Bash(command -v deno)",
+      "Bash(command -v bun)",
+      "Skill(claude-api)",
+      "Skill(claude-api:*)",
+      "Bash(npm --version)",
+      "Bash(command -v node)",
+      "Bash(echo \"node: $\\(command -v node || echo MISSING\\)\")",
+      "Bash(command -v npm)",
+      "Bash(echo \"npm: $\\(command -v npm || echo MISSING\\)\")",
+      "Bash(npm -v)",
+      "Bash(command -v pip3)",
+      "Bash(echo \"pip: $\\(command -v pip3 || echo MISSING\\)\")",
+      "Bash(python3 -c \"import sqlite3, hashlib, hmac, http.server, json, urllib.request; print\\('stdlib OK: sqlite3, hashlib, hmac, http.server, json, urllib'\\)\")",
+      "Bash(python3 -m py_compile server.py)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git config *)"
+    ]
+  }
+}

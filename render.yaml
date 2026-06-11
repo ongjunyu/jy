@@ -1,0 +1,26 @@
+# Render 一键蓝图（Blueprint）
+# 在 Render 控制台选择 "New +" → "Blueprint"，连接这个仓库即可自动创建
+# 一个 Web 服务 + 一个免费 Postgres 数据库。
+# 部署后到 Web 服务的 Environment 里把 ANTHROPIC_API_KEY 填上（真 AI 对话）。
+services:
+  - type: web
+    name: savings-helper
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python server.py
+    envVars:
+      - key: JWT_SECRET
+        generateValue: true          # Render 自动生成强随机密钥
+      - key: ANTHROPIC_MODEL
+        value: claude-opus-4-8        # 可改成 claude-haiku-4-5（更便宜）或 claude-sonnet-4-6
+      - key: ANTHROPIC_API_KEY
+        sync: false                   # 部署后在控制台手动填入你的 Key
+      - key: DATABASE_URL
+        fromDatabase:
+          name: savings-helper-db
+          property: connectionString
+
+databases:
+  - name: savings-helper-db
+    plan: free

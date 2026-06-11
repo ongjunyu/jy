@@ -1,0 +1,14 @@
+# 本地数据库（仅本机开发用，勿提交）
+data/
+*.db
+
+# Python 缓存
+__pycache__/
+*.pyc
+
+# 环境变量与密钥
+.env
+.env.local
+
+# 系统/编辑器
+.DS_Store
